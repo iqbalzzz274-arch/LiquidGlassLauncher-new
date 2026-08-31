@@ -17,23 +17,11 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
           java-version: '17'
+          distribution: 'temurin'
 
-      - name: Extract ZIP
-        run: |
-          ZIP=$(find . -maxdepth 2 -name "*.zip" -type f | head -1)
-          if [ -z "$ZIP" ]; then
-            echo "ZIP tidak dijumpai"
-            exit 1
-          fi
-          mkdir project
-          unzip -q "$ZIP" -d project
-
-      - name: Find Project
-        run: |
-          DIR=$(find project -name "settings.gradle" -o -name "settings.gradle.kts" | head -1)
-          if [ -z "$DIR" ]; then
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
             echo "settings.gradle tidak dijumpai"
             exit 1
           fi
