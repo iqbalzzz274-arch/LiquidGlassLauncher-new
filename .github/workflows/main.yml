@@ -14,17 +14,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
 
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug
+      - name: Extract ZIP
+        run: |
+          ZIP=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          unzip -q "$ZIP" -d project
+
+      - name: Find project
+        run: |
+          SETTINGS=$(find project -name "settings.gradle*" | head -n 1)
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LiquidGlassLauncher-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: "**/build/outputs/apk/debug/*.apk"
