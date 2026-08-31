@@ -1,10 +1,10 @@
-name: Build APK
+name: Build Liquid Glass Launcher
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
@@ -20,21 +20,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract ZIP
-        run: |
-          ZIP=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
-          unzip -q "$ZIP" -d project
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
-      - name: Find project
-        run: |
-          SETTINGS=$(find project -name "settings.gradle*" | head -n 1)
-          PROJECT_DIR=$(dirname "$SETTINGS")
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+      - name: Build Debug APK
+        run: gradle :app:assembleDebug
 
-      - name: Build APK
-        run: |
-          cd "$PROJECT_DIR"
-          gradle assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiquidGlassLauncher-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
