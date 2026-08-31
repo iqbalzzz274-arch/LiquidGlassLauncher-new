@@ -1,5 +1,4 @@
-name: Build Liquid Glass Launcher
-
+name: VoidGlassLauncherPremium_RedmiA3
 on:
   workflow_dispatch:
   push:
@@ -20,17 +19,123 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Extract Android project
+        run: |
+          set -e
+
+          ZIP=$(find . -maxdepth 2 -type f -name '*.zip' | head -n 1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: ZIP project tidak dijumpai."
+            exit 1
+          fi
+
+          echo "ZIP dijumpai: $ZIP"
+          rm -rf project
+          mkdir -p project
+          unzip -q "$ZIP" -d project
+
+          echo "Isi project:"
+          find project -maxdepth 3 -type f | head -100
+
+      - name: Find Android project
+        run: |
+          set -e
+
+          PROJECT_DIR=""
+
+          if [ -f "project/LiquidGlassLauncher32/settings.gradle" ]; then
+            PROJECT_DIR="project/LiquidGlassLauncher32"
+          elif [ -f "project/LiquidGlassLauncher32/settings.gradle.kts" ]; then
+            PROJECT_DIR="project/LiquidGlassLauncher32"
+          else
+            SETTINGS=$(find project -type f \( \
+              -name "settings.gradle" \
+              -o -name "settings.gradle.kts" \
+            \) | head -n 1)
+
+            if [ -z "$SETTINGS" ]; then
+              echo "ERROR: settings.gradle tidak dijumpai."
+              find project -maxdepth 4 -type f
+              exit 1
+            fi
+
+            PROJECT_DIR=$(dirname "$SETTINGS")
+          fi
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Android project: $PROJECT_DIR"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Build Debug APK
-        run: gradle :app:assembleDebug
+      - name: Build Release APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          set -e
+
+          echo "Building project..."
+          gradle --no-daemon assembleRelease
+
+      - name: Find APK
+        run: |
+          set -e
+
+          APK=$(find "$PROJECT_DIR" -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK tidak dijumpai."
+            find "$PROJECT_DIR" -type f | tail -100
+            exit 1
+          fi
+
+          echo "APK dijumpai: $APK"
+          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LiquidGlassLauncher-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.APK_PATH }}
+          if-no-files-found: error            PROJECT_DIR=$(dirname "$SETTINGS")
+          fi
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Android project: $PROJECT_DIR"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build Release APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          set -e
+
+          echo "Building project..."
+          gradle --no-daemon assembleRelease
+
+      - name: Find APK
+        run: |
+          set -e
+
+          APK=$(find "$PROJECT_DIR" -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK tidak dijumpai."
+            find "$PROJECT_DIR" -type f | tail -100
+            exit 1
+          fi
+
+          echo "APK dijumpai: $APK"
+          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiquidGlassLauncher-APK
+          path: ${{ env.APK_PATH }}
           if-no-files-found: error
